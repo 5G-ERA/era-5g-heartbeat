@@ -1,0 +1,5 @@
+era_5g_interface~=0.8.0 # Must be updated
+era_5g_server~=0.2.0 # Must be updated
+psutil>=5.9.7
+pythonping>=1.1.4
+
