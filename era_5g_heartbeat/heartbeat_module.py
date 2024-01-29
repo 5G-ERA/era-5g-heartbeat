@@ -7,13 +7,13 @@ from urllib.parse import urlparse
 import psutil
 from pythonping import executor, ping
 
-from era_5g_interface.channels import CallbackInfoServer, ChannelType, DATA_ERROR_EVENT, DATA_NAMESPACE
+from era_5g_interface.channels import DATA_ERROR_EVENT, DATA_NAMESPACE, CallbackInfoServer, ChannelType
 from era_5g_interface.dataclasses.control_command import ControlCmdType, ControlCommand
 from era_5g_interface.interface_helpers import (
-    HeartBeatSender,
+    HEARTBEAT_CLIENT_EVENT,
     MIDDLEWARE_ADDRESS,
     MIDDLEWARE_REPORT_INTERVAL,
-    HEARTBEAT_CLIENT_EVENT,
+    HeartBeatSender,
     RepeatedTimer,
 )
 from era_5g_server.server import NetworkApplicationServer
@@ -26,8 +26,8 @@ HEARTBEAT_PORT = int(os.getenv("HEARTBEAT_PORT", 5898))
 
 
 class HeartbeatModule(NetworkApplicationServer):
-    """Heartbeat Module server communicates with 5G-ERA Network Application clients, with Central API, and
-    manages periodic status information about robot (CPU, RAM, etc.) and sends it to 5G-ERA Middleware."""
+    """Heartbeat Module server communicates with 5G-ERA Network Application clients, with Central API, and manages
+    periodic status information about robot (CPU, RAM, etc.) and sends it to 5G-ERA Middleware."""
 
     def __init__(
         self,
@@ -108,7 +108,7 @@ class HeartbeatModule(NetworkApplicationServer):
         if command and command.cmd_type == ControlCmdType.INIT:
             # Check that initialization has not been called before.
             if eio_sid in self.tasks:
-                logger.error(f"Client attempted to call initialization multiple times")
+                logger.error("Client attempted to call initialization multiple times")
                 self.send_command_error("Initialization has already been called before", sid)
                 return False, "Initialization has already been called before"
 
@@ -136,7 +136,7 @@ class HeartbeatModule(NetworkApplicationServer):
         logger.info(f"Client disconnected from {DATA_NAMESPACE} namespace, eio_sid {eio_sid}, sid {sid}")
 
 
-def main():
+def main() -> None:
     """Main function."""
 
     heart_beat_module = HeartbeatModule(port=HEARTBEAT_PORT, host="0.0.0.0")
