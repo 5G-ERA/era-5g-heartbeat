@@ -9,13 +9,7 @@ from pythonping import executor, ping
 
 from era_5g_interface.channels import DATA_ERROR_EVENT, DATA_NAMESPACE, CallbackInfoServer, ChannelType
 from era_5g_interface.dataclasses.control_command import ControlCmdType, ControlCommand
-from era_5g_interface.interface_helpers import (
-    HEARTBEAT_CLIENT_EVENT,
-    MIDDLEWARE_ADDRESS,
-    MIDDLEWARE_REPORT_INTERVAL,
-    HeartBeatSender,
-    RepeatedTimer,
-)
+from era_5g_interface.interface_helpers import HEARTBEAT_CLIENT_EVENT, MIDDLEWARE_ADDRESS, HeartbeatSender
 from era_5g_server.server import NetworkApplicationServer
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -24,6 +18,29 @@ logger = logging.getLogger("Heartbeat module")
 # Port of the Heartbeat Module server.
 HEARTBEAT_PORT = int(os.getenv("HEARTBEAT_PORT", 5898))
 
+# Middleware robot ID (robot ID).
+MIDDLEWARE_ROBOT_ID = str(os.getenv("MIDDLEWARE_ROBOT_ID", "00000000-0000-0000-0000-000000000000"))
+
+ROBOT_STATUS_ADDRESS = (
+    MIDDLEWARE_ADDRESS if MIDDLEWARE_ADDRESS.endswith("/status/robot") else MIDDLEWARE_ADDRESS + "/status/robot"
+)
+
+
+def generate_heartbeat_data() -> Dict:
+    """Generate robot heartbeat JSON data."""
+
+    battery_status = psutil.sensors_battery()
+
+    data = {
+        "id": MIDDLEWARE_ROBOT_ID,  # String
+        "actionSequenceId": None,  # Optional, integer
+        "currentlyExecutedActionIndex": None,  # Optional, integer
+        "batteryLevel": int(battery_status.percent if battery_status else 100),  # Robot battery level, integer
+        "cpuUtilisation": psutil.cpu_percent(percpu=False),  # Robot CPU utilization, float
+        "ramUtilisation": psutil.virtual_memory().percent,  # Robot RAM utilization, float
+    }
+    return data
+
 
 class HeartbeatModule(NetworkApplicationServer):
     """Heartbeat Module server communicates with 5G-ERA Network Application clients, with Central API, and manages
@@ -31,7 +48,6 @@ class HeartbeatModule(NetworkApplicationServer):
 
     def __init__(
         self,
-        *args,
         **kwargs,
     ) -> None:
         """Constructor.
@@ -45,27 +61,11 @@ class HeartbeatModule(NetworkApplicationServer):
             callbacks_info={
                 HEARTBEAT_CLIENT_EVENT: CallbackInfoServer(ChannelType.JSON, self.info_callback),
             },
-            *args,
             **kwargs,
         )
         self.tasks: Dict[str, str] = dict()
 
-        self.heart_beat_sender = HeartBeatSender()
-        heart_beat_timer = RepeatedTimer(MIDDLEWARE_REPORT_INTERVAL, self.heart_beat)
-        heart_beat_timer.start()
-
-    def heart_beat(self):
-        """Heart beat generation and sending."""
-
-        battery_status = psutil.sensors_battery()
-
-        self.heart_beat_sender.send_robot_heart_beat(
-            battery_level=battery_status.percent if battery_status else 100,
-            cpu_utilization=psutil.cpu_percent(percpu=True),
-            ram_utilization=psutil.virtual_memory().percent,
-            quality_map_status=None,
-            repeat_on_error=False,
-        )
+        self.heartbeat_sender = HeartbeatSender(ROBOT_STATUS_ADDRESS, generate_heartbeat_data)
 
     def info_callback(self, sid: str, data: Dict) -> Dict:
         """Allows to receive general info json data using the websocket transport.
@@ -139,10 +139,10 @@ class HeartbeatModule(NetworkApplicationServer):
 def main() -> None:
     """Main function."""
 
-    heart_beat_module = HeartbeatModule(port=HEARTBEAT_PORT, host="0.0.0.0")
+    heartbeat_module = HeartbeatModule(port=HEARTBEAT_PORT, host="0.0.0.0")
 
     try:
-        heart_beat_module.run_server()
+        heartbeat_module.run_server()
     except KeyboardInterrupt:
         logger.info("Terminating ...")
 

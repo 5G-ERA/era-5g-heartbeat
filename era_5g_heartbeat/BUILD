@@ -9,10 +9,10 @@ python_distribution(
     sdist=True,
     provides=setup_py(
         name="era_5g_heartbeat",
-        version="0.1.0",
+        version="0.2.0",
         description="Heartbeat module for 5G ERA applications.",
-        author="Michal Kapinus",
-        author_email="ikapinus@fit.vutbr.cz",
+        author="Petr Kleparnik",
+        author_email="p.kleparnik@cognitechna.cz",
         license="LGPL",
         python_requires=">=3.8",
         classifiers=[

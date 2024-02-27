@@ -1,7 +1,7 @@
-era_5g_interface~=0.8.0 # TODO Must be updated
-era_5g_server~=0.2.0 # TODO Must be updated
+era_5g_interface~=0.10.0
+era_5g_server~=0.4.0 # TODO Must be updated
 psutil>=5.9.7
 pythonping>=1.1.4
 
 # TODO this should go to mypy.txt (but it wtf does not work atm)
-types-psutil==5.9.5.20240106
+types-psutil>=5.9.5.20240106
